@@ -1,0 +1,10 @@
+################################
+# Dune module information file #
+################################
+
+#Name of the module
+Module: hommel2019a
+Version: 1
+Maintainer: johannes.hommel@iws.uni-stuttgart.de
+#depending on
+Depends: dune-common dune-geometry dune-grid dune-istl dune-localfunctions dumux

@@ -1,0 +1,99 @@
+[Newton]
+MaxRelativeShift = 1e-6 #
+MaxSteps = 10 #
+TargetSteps = 5 #
+
+[Model]
+PlausibilityTolerance = 1e-6 #
+pHMin = 2 #
+pHMax = 12 #
+uCurExtrapolation = 0 # 1: set uCur_ to a linear extrapolation from the last two timesteps 0: use the standard uCur_ = uPrev_
+
+[Problem]
+Name = EICPColumn2#
+UseHeatKilledCells = true # define whether heat-killed cells are used as enzyme source
+UseJackBeans = false # define whether jack beans are used as enzyme source
+Inverse = false # false for normal model, true for use as forward model in an inverse model run
+
+[Initial]
+initDensityW = 1087 # 			[kg/m³]
+initPressure = 1e5 # 			[Pa]		#BikeRim
+
+initxwTC = 2.3864e-7 #	 		[mol/mol]
+initxwNa = 0.0 # 				[mol/mol]
+initxwCl = 0.0 # 				[mol/mol]
+initxwCa = 0.0 # 				[mol/mol]
+initxwUrea = 0.0 # 				[mol/mol]
+initxwTNH = 0.0 #	 	[mol/mol]
+#initxwUrease = 0.000 #
+initxwEnzymeSource = 0.000 #
+initCalcite = 0.0 # 			[-]
+initImmUrease = 0.0 #             [-]
+initImmJBM = 0.0 #             [-]
+initTemperature = 333.15 #      [K] (60°C)
+
+xwNaCorr = 5.72376e-8 # 			[mol/mol]      //NaCorr to get the pH to 6.0 calculated as molefraction
+xwClCorr = 0.0 # 				[mol/mol]
+
+[Injection]
+injVolumeflux = 9.06667e-7 # =54.4/60/1e6 #	//[m³/s] = [ml/min] /[s/min] /[ml/m³]
+
+injTC = 2.3864e-7  #				 [kg/kg]		//equilibrium with atmospheric CO2 unter atmospheric pressure
+injNa = 0.0 #				 [kg/m³]		//NaCl injected
+injCa = 26.6 #			 	 [kg/m³]		//computed from 98 g/l CaCl2*2H2O (molar mass = 147.68g/mol --> 0.66molCa/l, equimolar with urea (40g/l and 60g/mol))
+injUrea = 40 #					 [kg/m³]
+injTNH = 3.183840574 #//3.184#	 [kg/m³]		//computed from 10 g/l NH4Cl
+
+injNaCorr= 7.281276e-5 #			[kg/m³]		//NaCorr to get the pH to 6.0
+injEnzymeSource = 0.93 # [kg/m³]  (Oct. 2019)
+injTemperature = 333.15 #       [K] (60°C)
+injPressure = 2e5 #             [Pa] estimated injection pressure for enthalpy calculations
+injSalinity = 0.01 #            [-]  estimated injection salinity for enthalpy calculations
+
+numInjections = 98 #
+InjectionParamFile = ../injections/EICPColumn2Inj.dat #
+
+[Vtk]
+AddVelocity = 1 # enable velocity output
+
+[TimeLoop]
+DtInitial = 1 #0.01# [s]
+TEnd = 202888 # [s]		#
+MaxTimeStepSize = 2000 # [s]
+
+[Grid]
+LowerLeft = 0
+UpperRight = 0.7620 #0.8382
+Cells = 30 #33
+
+[SpatialParams]
+ReferencePorosity = 0.345 # [-]
+CritPorosity = 0.0 # [-]		#Sand-filled experiments
+ReferencePermeability = 2e-10 # [m^2]
+
+[CalciteCoefficients]
+ac = 2000 # 		// [1/dm] 		Ebigbo et al. 2012  (estimated)
+kdiss1 = 8.9e-3 # 	// [kgH2O/dm²s] Chou et al. 1989
+kdiss2 = 6.5e-9 #  	// [mol/dm²s] 	Chou et al. 1989
+kprec = 1.5e-12 # 	// [mol/dm²s] 	Zhong and Mucci 1989
+ndiss = 1.0 # 		// [-] 			Flukinger and Bernard 2009
+nprec = 3.27 # 		// [-] 			Zhong and Mucci 1989
+Asw0 = 500.0 # 		// [1/dm] 		Ebigbo et al. 2012  (estimated using phi_0 and A/V)
+
+[UreolysisCoefficients]
+cu = 1.3438e6 #       [1/s]  (Oct. 2019, see KineticsCalculation spreadsheet)
+cuT = -9945 #         [K]        (Oct. 2019, see KineticsCalculation spreadsheet)
+
+
+[UreaseCoefficientsHKC]
+kurease = 462.74 # [m³/kg s] pre-exponential factor (Oct. 2019, see KineticsCalculation spreadsheet)
+cureaseT = -4263.108 # [K] or rather  exponent for the temperature dependence (Oct. 2019, see KineticsCalculation spreadsheet)
+cia = 1.3340e23 #        // [1/s] pre-exponential factor (Oct. 2019, see KineticsCalculation spreadsheet)
+ciaT = -21140 #        // [K] or rather         (Oct. 2019, see KineticsCalculation spreadsheet)
+ciaPrec = 0.67 #
+
+ka_urease = 3.99e-2 #    // [1/s]        fitted
+kd_urease = 8.23e-13 #    // [1/s]        fitted
+
+[Geochem]
+pKaFactor = 1
