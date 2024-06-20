@@ -22,12 +22,14 @@ initPressure = 1e5 # 			[Pa]		#BikeRim
 initxwTC = 2.3864e-7 #	 		[mol/mol]
 initxwNa = 0.0 # 				[mol/mol]
 initxwCl = 0.0 # 				[mol/mol]
+initxwFe2 = 0.0 # 				[mol/mol]
 initxwCa = 0.0 # 				[mol/mol]
 initxwUrea = 0.0 # 				[mol/mol]
 initxwTNH = 0.0 #	 	[mol/mol]
 #initxwUrease = 0.000 #
 initxwEnzymeSource = 0.000 #
 initCalcite = 0.0 # 			[-]
+initFerrohydrite = 0.0 # 			[-]
 initImmUrease = 0.0 #             [-]
 initImmJBM = 0.0 #             [-]
 initTemperature = 333.15 #      [K] (60°C)
@@ -40,6 +42,7 @@ injVolumeflux = 9.06667e-7 # =54.4/60/1e6 #	//[m³/s] = [ml/min] /[s/min] /[ml/m
 
 injTC = 2.3864e-7  #				 [kg/kg]		//equilibrium with atmospheric CO2 unter atmospheric pressure
 injNa = 0.0 #				 [kg/m³]		//NaCl injected
+injFe2 = 10.0 #				 [kg/m³]		//
 injCa = 13.3 #			 	 [kg/m³]		//computed from 49 g/l CaCl2*2H2O (molar mass = 147.68g/mol --> 0.33molCa/l, equimolar with urea (20g/l and 60g/mol))
 injUrea = 20 #					 [kg/m³]
 injTNH = 3.183840574 #//3.184#	 [kg/m³]		//computed from 10 g/l NH4Cl
@@ -79,6 +82,15 @@ kprec = 1.5e-12 # 	// [mol/dm²s] 	Zhong and Mucci 1989
 ndiss = 1.0 # 		// [-] 			Flukinger and Bernard 2009
 nprec = 3.27 # 		// [-] 			Zhong and Mucci 1989
 Asw0 = 500.0 # 		// [1/dm] 		Ebigbo et al. 2012  (estimated using phi_0 and A/V)
+
+[FerrohydriteCoefficients]
+fac = 2000 # 		// [1/dm] 		Ebigbo et al. 2012  (estimated)
+fkdiss1 = 8.9e-3 # 	// [kgH2O/dm²s] Chou et al. 1989
+fkdiss2 = 6.5e-9 #  	// [mol/dm²s] 	Chou et al. 1989
+fkprec = 1.5e-12 # 	// [mol/dm²s] 	Zhong and Mucci 1989
+fndiss = 1.0 # 		// [-] 			Flukinger and Bernard 2009
+fnprec = 3.27 # 		// [-] 			Zhong and Mucci 1989
+fAsw0 = 500.0 # 		// [1/dm] 		Ebigbo et al. 2012  (estimated using phi_0 and A/V)
 
 [UreolysisCoefficients]
 cu = 1.3438e6 #       [1/s]  (Oct. 2019, see KineticsCalculation spreadsheet)
