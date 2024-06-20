@@ -246,7 +246,8 @@ public:
         permeability_.resize(gridGeometry->gridView().size(codim));
         calcium_.resize(gridGeometry->gridView().size(codim));
         urea_.resize(gridGeometry->gridView().size(codim));
-
+        fe2_.resize(gridGeometry->gridView().size(codim));
+		
         std::ifstream injectionData;
         std::string row;
         injectionData.open( injectionParameters_); // open the Injection data file
@@ -553,6 +554,10 @@ public:
     {
         return urea_;
     }
+    const std::vector<Scalar>& getFe2()
+    {
+        return fe2_;
+    }
 
 
 
@@ -573,6 +578,8 @@ public:
                 permeability_[dofIdxGlobal] = volVars.permeability();
                 calcium_[dofIdxGlobal] = volVars.moleFraction(0,CaIdx)* volVars.molarDensity(0) * FluidSystem::molarMass(CaIdx);
                 urea_[dofIdxGlobal] = volVars.moleFraction(0,UreaIdx)* volVars.molarDensity(0) * FluidSystem::molarMass(UreaIdx);
+                fe2_[dofIdxGlobal] = volVars.moleFraction(0,Fe2Idx)* volVars.molarDensity(0) * FluidSystem::molarMass(Fe2Idx);
+ 
             }
         }
     }
@@ -668,6 +675,7 @@ private:
     std::vector<Scalar> permeability_;
     std::vector<Scalar> calcium_;
     std::vector<Scalar> urea_;
+    std::vector<Scalar> fe2_;
 
     Scalar time_ = 0.0;
     Scalar timeStepSize_ = 0.0;
@@ -677,4 +685,7 @@ private:
 } //end namespace
 
 #endif
+
+
+
 
