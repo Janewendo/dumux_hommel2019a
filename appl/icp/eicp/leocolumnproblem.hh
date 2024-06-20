@@ -17,8 +17,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.   *
  *****************************************************************************/
 
-#ifndef DUMUX_EICP_COLUMN_PROBLEM_HH
-#define DUMUX_EICP_COLUMN_PROBLEM_HH
+#ifndef DUMUX_LEO_COLUMN_PROBLEM_HH
+#define DUMUX_LEO_COLUMN_PROBLEM_HH
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -32,14 +32,14 @@
 #include <dumux/discretization/evalgradients.hh>
 #include <dumux/porousmediumflow/problem.hh>
 
-#include <dumux/material/fluidsystems/enzymemin.hh>
-#include <dumux/material/solidsystems/enzymeminsolids.hh>
+#include <dumux/material/fluidsystems/leomin.hh>
+#include <dumux/material/solidsystems/leominsolids.hh>
 
 #include <dumux/porousmediumflow/problem.hh>
 #include <dumux/porousmediumflow/2picp/model.hh>
 
 #include <dumux/material/binarycoefficients/brine_co2.hh>
-#include <dumux/material/chemistry/biogeochemistry/enzymecarbonicacid.hh>
+#include <dumux/material/chemistry/biogeochemistry/leocarbonicacid.hh>
 
 #include <appl/icp/icpspatialparams.hh>
 #include <appl/icp/co2tableslaboratoryhightemp.hh>
@@ -51,68 +51,68 @@
 namespace Dumux
 {
 template <class TypeTag>
-class EICPColumnProblem;
+class LEOColumnProblem;
 
 namespace Properties
 {
 // Create new type tags
 namespace TTag {
 #if NONISOTHERMAL
-struct EICPColumnTypeTag { using InheritsFrom = std::tuple<TwoPICPNI>; };
-struct EICPColumnCCTpfaTypeTag { using InheritsFrom = std::tuple<EICPColumnTypeTag, CCTpfaModel>; };
-struct EICPColumnBoxTypeTag { using InheritsFrom = std::tuple<EICPColumnTypeTag, BoxModel>; };
-#else
-struct EICPColumnTypeTag { using InheritsFrom = std::tuple<TwoPICP>; };
-struct EICPColumnCCTpfaTypeTag { using InheritsFrom = std::tuple<EICPColumnTypeTag, CCTpfaModel>; };
-struct EICPColumnBoxTypeTag { using InheritsFrom = std::tuple<EICPColumnTypeTag, BoxModel>; };
+struct LEOColumnTypeTag { using InheritsFrom = std::tuple<TwoPICPNI>; };
+struct LEOColumnCCTpfaTypeTag { using InheritsFrom = std::tuple<LEOColumnTypeTag, CCTpfaModel>; };
+struct LEOColumnBoxTypeTag { using InheritsFrom = std::tuple<LEOColumnTypeTag, BoxModel>; };
+#else  LEO
+struct LEOColumnTypeTag { using InheritsFrom = std::tuple<TwoPICP>; };
+struct LEOColumnCCTpfaTypeTag { using InheritsFrom = std::tuple<LEOColumnTypeTag, CCTpfaModel>; };
+struct LEOColumnBoxTypeTag { using InheritsFrom = std::tuple<LEOColumnTypeTag, BoxModel>; };
 #endif
 } // end namespace TTag
 
 // Set the grid type
 template<class TypeTag>
-struct Grid<TypeTag, TTag::EICPColumnTypeTag> { using type = Dune::YaspGrid<1>; };
+struct Grid<TypeTag, TTag::LEOColumnTypeTag> { using type = Dune::YaspGrid<1>; };
 
 // Set the problem property
 template<class TypeTag>
-struct Problem<TypeTag, TTag::EICPColumnTypeTag> { using type = EICPColumnProblem<TypeTag>; };
+struct Problem<TypeTag, TTag::LEOColumnTypeTag> { using type = LEOColumnProblem<TypeTag>; };
 
 //Set the CO2 tables used.
-SET_TYPE_PROP(EICPColumnTypeTag, CO2Tables, Dumux::ICP::CO2Tables);
+SET_TYPE_PROP(LEOColumnTypeTag, CO2Tables, Dumux::ICP::CO2Tables);
 
 // set the fluidSystem
 template<class TypeTag>
-struct FluidSystem<TypeTag, TTag::EICPColumnTypeTag>
+struct FluidSystem<TypeTag, TTag::LEOColumnTypeTag>
 {
     using Scalar = GetPropType<TypeTag, Properties::Scalar>;
     using CO2Tables = GetPropType<TypeTag, Properties::CO2Tables>;
     using H2OTabulated = Components::TabulatedComponent<Components::H2O<Scalar>>;
-    using type = Dumux::FluidSystems::EnzymeMinFluid<Scalar, CO2Tables, H2OTabulated>;
+    using type = Dumux::FluidSystems::LeoMinFluid<Scalar, CO2Tables, H2OTabulated>;
 };
 
 // set the solidSystem
 template<class TypeTag>
-struct SolidSystem<TypeTag, TTag::EICPColumnTypeTag>
+struct SolidSystem<TypeTag, TTag::LEOColumnTypeTag>
 {
     using Scalar = GetPropType<TypeTag, Properties::Scalar>;
-    using type = SolidSystems::EnzymeMinSolidPhase<Scalar>;
+    using type = SolidSystems::LeoMinSolidPhase<Scalar>;
 };
 
 
 //Set the problem chemistry
 template<class TypeTag>
-struct Chemistry<TypeTag, TTag::EICPColumnTypeTag>
+struct Chemistry<TypeTag, TTag::LEOColumnTypeTag>
 {
     using CO2Tables = GetPropType<TypeTag, Properties::CO2Tables>;
     using ModelTraits = GetPropType<TypeTag, Properties::ModelTraits>;
-    using type = Dumux::EnzymeMinCarbonicAcid<TypeTag, CO2Tables, ModelTraits>;
+    using type = Dumux::LeoMinCarbonicAcid<TypeTag, CO2Tables, ModelTraits>;
 };
 
 // Set the spatial parameters
 template<class TypeTag>
-struct SpatialParams<TypeTag, TTag::EICPColumnTypeTag> { using type = ICPSpatialParams<TypeTag>; };
+struct SpatialParams<TypeTag, TTag::LEOColumnTypeTag> { using type = ICPSpatialParams<TypeTag>; };
 
 template<class TypeTag>
-struct Formulation<TypeTag, TTag::EICPColumnTypeTag>
+struct Formulation<TypeTag, TTag::LEOColumnTypeTag>
 { static constexpr auto value = TwoPFormulation::p0s1; };
 
 }
@@ -123,7 +123,7 @@ struct Formulation<TypeTag, TTag::EICPColumnTypeTag>
  * \brief Problem for enzyme-induced calcium carbonate precipitation
  *  */
 template <class TypeTag>
-class EICPColumnProblem : public PorousMediumFlowProblem<TypeTag>
+class LEOColumnProblem : public PorousMediumFlowProblem<TypeTag>
 {
     using ParentType = PorousMediumFlowProblem<TypeTag>;
     using GridView = GetPropType<TypeTag, Properties::GridView>;
@@ -140,12 +140,14 @@ class EICPColumnProblem : public PorousMediumFlowProblem<TypeTag>
         xwNaIdx = FluidSystem::NaIdx,
         xwClIdx = FluidSystem::ClIdx,
         xwCaIdx = FluidSystem::CaIdx,
+        xwFe2Idx = FluidSystem::Fe2Idx,
         xwUreaIdx = FluidSystem::UreaIdx,
         xwTNHIdx = FluidSystem::TNHIdx,
         xwUreaseIdx = FluidSystem::UreaseIdx,
         phiImmUreaseIdx = numComponents,
         phiCalciteIdx = numComponents +1,
-
+        phiFerrohydriteIdx = numComponents +2,
+		
 #if NONISOTHERMAL
         temperatureIdx = Indices::temperatureIdx,
         energyEqIdx = Indices::energyEqIdx,
@@ -157,6 +159,7 @@ class EICPColumnProblem : public PorousMediumFlowProblem<TypeTag>
         NaIdx = FluidSystem::NaIdx,
         ClIdx = FluidSystem::ClIdx,
         CaIdx = FluidSystem::CaIdx,
+        Fe2Idx = FluidSystem::Fe2Idx,
         UreaIdx = FluidSystem::UreaIdx,
         TNHIdx = FluidSystem::TNHIdx,
         UreaseIdx = FluidSystem::UreaseIdx,
@@ -194,7 +197,7 @@ class EICPColumnProblem : public PorousMediumFlowProblem<TypeTag>
     using GridVariables = GetPropType<TypeTag, Properties::GridVariables>;
 
 public:
-    EICPColumnProblem(std::shared_ptr<const GridGeometry> gridGeometry)
+    LEOColumnProblem(std::shared_ptr<const GridGeometry> gridGeometry)
     : ParentType(gridGeometry)
     {
         //Dune::FMatrixPrecision<Scalar>::set_singular_limit(1e-35);
@@ -209,10 +212,12 @@ public:
         initxwNa_ = getParam<Scalar>("Initial.initxwNa");
         initxwCl_ = getParam<Scalar>("Initial.initxwCl");
         initxwCa_ = getParam<Scalar>("Initial.initxwCa");
+        initxwFe2_ = getParam<Scalar>("Initial.initxwFe2");
         initxwUrea_ = getParam<Scalar>("Initial.initxwUrea");
         initxwTNH_ = getParam<Scalar>("Initial.initxwTNH");
         initxwEnzymeSource_ = getParam<Scalar>("Initial.initxwEnzymeSource");
         initCalcite_ = getParam<Scalar>("Initial.initCalcite");
+        initFerrohydrite_ = getParam<Scalar>("Initial.initFerrohydrite");
         initImmUrease_ = getParam<Scalar>("Initial.initImmUrease");
         initTemperature_ = getParam<Scalar>("Initial.initTemperature");
 
@@ -225,6 +230,7 @@ public:
         injTC_ = getParam<Scalar>("Injection.injTC");
         injNa_ = getParam<Scalar>("Injection.injNa");
         injCa_ = getParam<Scalar>("Injection.injCa");
+        injFe2_ = getParam<Scalar>("Injection.injFe2");
         injUrea_ = getParam<Scalar>("Injection.injUrea");
         injTNH_ = getParam<Scalar>("Injection.injTNH");
         injEnzymeSource_= getParam<Scalar>("Injection.injEnzymeSource");
@@ -428,6 +434,8 @@ public:
            values[conti0EqIdx + xwUreaseIdx] = 0;
            values[conti0EqIdx + xwTNHIdx] = 0;
            values[conti0EqIdx + phiCalciteIdx] = 0;
+           values[conti0EqIdx + xwFe2Idx] = 0;
+           values[conti0EqIdx + phiFerrohydriteIdx] = 0;
            values[conti0EqIdx + phiImmUreaseIdx] = 0;
            values[conti0EqIdx + xwNaIdx] = -waterFlux * (injNa_+injNaCorr_) /FluidSystem::molarMass(NaIdx);
            values[conti0EqIdx + xwClIdx] = -waterFlux *injNa_ /FluidSystem::molarMass(NaIdx);               //NaCl ---> mol Cl = mol Na
@@ -462,6 +470,7 @@ public:
                values[conti0EqIdx + wCompIdx] = - waterFlux * 0.8716 * densityW_ /FluidSystem::molarMass(wCompIdx);       //TODO 0.8716 check factor!!!
                values[conti0EqIdx + nCompIdx] = - waterFlux * injTC_ * densityW_ /FluidSystem::molarMass(nCompIdx);
                values[conti0EqIdx + xwCaIdx] = - waterFlux * injCa_/FluidSystem::molarMass(CaIdx);
+               values[conti0EqIdx + xwFe2Idx] = - waterFlux * injFe2_/FluidSystem::molarMass(Fe2Idx);			   
                values[conti0EqIdx + xwUreaIdx] = - waterFlux * injUrea_ /FluidSystem::molarMass(UreaIdx);
                values[conti0EqIdx + xwClIdx] += - waterFlux * 2 * injCa_/FluidSystem::molarMass(CaIdx);
 
@@ -563,6 +572,7 @@ public:
                 const auto dofIdxGlobal = scv.dofIndex();
                 permeability_[dofIdxGlobal] = volVars.permeability();
                 calcium_[dofIdxGlobal] = volVars.moleFraction(0,CaIdx)* volVars.molarDensity(0) * FluidSystem::molarMass(CaIdx);
+                ferrohydrite_[dofIdxGlobal] = volVars.moleFraction(0,Fe2Idx)* volVars.molarDensity(0) * FluidSystem::molarMass(Fe2Idx);
                 urea_[dofIdxGlobal] = volVars.moleFraction(0,UreaIdx)* volVars.molarDensity(0) * FluidSystem::molarMass(UreaIdx);
             }
         }
@@ -585,8 +595,10 @@ private:
         priVars[xwCaIdx] = initxwCa_;
         priVars[xwUreaIdx] = initxwUrea_;
         priVars[xwTNHIdx] = initxwTNH_;
+        priVars[xwFe2Idx] = initxwFe2_;
         priVars[xwUreaseIdx]= initxwEnzymeSource_;
         priVars[phiCalciteIdx] = initCalcite_; // [m^3/m^3]
+        priVars[phiFerrohydriteIdx] = initFerrohydrite_; // [m^3/m^3]
         priVars[phiImmUreaseIdx] = initImmUrease_; // [m^3/m^3]
 
 #if NONISOTHERMAL
@@ -621,11 +633,13 @@ private:
     Scalar initxwCa_;
     Scalar initxwUrea_;
     Scalar initxwTNH_;
+    Scalar initxwFe2_;
     Scalar initxwEnzymeSource_;
     Scalar xwNaCorr_;
     Scalar xwClCorr_;
 
     Scalar initCalcite_;
+    Scalar initFerrohydrite_;
     Scalar initImmUrease_;
     Scalar initImmJBM_;
     Scalar initPorosity_;
@@ -636,6 +650,7 @@ private:
     Scalar injTC_;
     Scalar injNa_;
     Scalar injCa_;
+    Scalar injFe2_;
     Scalar injUrea_;
     Scalar injTNH_;
     Scalar injNaCorr_;
@@ -653,6 +668,7 @@ private:
 
     std::vector<Scalar> permeability_;
     std::vector<Scalar> calcium_;
+    std::vector<Scalar> ferrohydrite_;
     std::vector<Scalar> urea_;
 
     Scalar time_ = 0.0;
@@ -663,3 +679,4 @@ private:
 } //end namespace
 
 #endif
+
