@@ -3,6 +3,7 @@
 I’ve been trying to add a new component Fe, and a new mineral, also a new reaction Ferrohydrite Fe(OH)2 = Fe + 2OH to the original system written in Hommel2019a. But I couldn’t get it to run.
 
 To add them, I changed the code in the following code:
+
 •	appl/icp/eicp/leocolumnproblem.hh, leo.cc, leo_column1.input
 defined initial condition, boundary condition (injection) for Fe and Ferrohydrite
 
