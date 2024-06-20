@@ -58,8 +58,8 @@ public:
     static constexpr int numInertComponents = 1;
     static constexpr int JbmeIdx = 0;
     static constexpr int CalciteIdx = 1;
-    static constexpr int GraniteIdx = 2;
-    static constexpr int FerrohydriteIdx = 3;
+    static constexpr int GraniteIdx = 3;
+    static constexpr int FerrohydriteIdx = 2;
 	
     /*!
      * \brief Return the human readable name of a solid phase
