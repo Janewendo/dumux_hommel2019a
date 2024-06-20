@@ -572,7 +572,6 @@ public:
                 const auto dofIdxGlobal = scv.dofIndex();
                 permeability_[dofIdxGlobal] = volVars.permeability();
                 calcium_[dofIdxGlobal] = volVars.moleFraction(0,CaIdx)* volVars.molarDensity(0) * FluidSystem::molarMass(CaIdx);
-                ferrohydrite_[dofIdxGlobal] = volVars.moleFraction(0,Fe2Idx)* volVars.molarDensity(0) * FluidSystem::molarMass(Fe2Idx);
                 urea_[dofIdxGlobal] = volVars.moleFraction(0,UreaIdx)* volVars.molarDensity(0) * FluidSystem::molarMass(UreaIdx);
             }
         }
@@ -668,7 +667,6 @@ private:
 
     std::vector<Scalar> permeability_;
     std::vector<Scalar> calcium_;
-    std::vector<Scalar> ferrohydrite_;
     std::vector<Scalar> urea_;
 
     Scalar time_ = 0.0;
