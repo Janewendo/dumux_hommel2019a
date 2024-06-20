@@ -26,8 +26,8 @@
  * \brief A fluid system with water and gas as phases and brine and CO2
  *        as components.
  */
-#ifndef DUMUX_ENZYME_MIN_SYSTEM_HH
-#define DUMUX_ENZYME_MIN_SYSTEM_HH
+#ifndef DUMUX_LEO_MIN_SYSTEM_HH
+#define DUMUX_LEO_MIN_SYSTEM_HH
 
 #include <dumux/material/idealgas.hh>
 
@@ -48,7 +48,7 @@
 #include <dumux/material/components/urea.hh>
 #include <dumux/material/components/ammonia.hh>
 #include <dumux/material/components/urease.hh>
-
+#include <dumux/material/components/iron2ion.hh>
 #include <dumux/material/components/ammoniumion.hh>
 #include <dumux/material/components/hydronion.hh>
 #include <dumux/material/components/hydroxideion.hh>
@@ -93,11 +93,11 @@ namespace FluidSystems
 template <class Scalar,
           class CO2Table,
           class H2OType = Components::TabulatedComponent<Components::H2O<Scalar>> >
-class EnzymeMinFluid
-: public Base<Scalar, EnzymeMinFluid<Scalar, CO2Table, H2OType> >
+class LeoMinFluid
+: public Base<Scalar, LeoMinFluid<Scalar, CO2Table, H2OType> >
 
 {
-    using ThisType = EnzymeMinFluid<Scalar, CO2Table, H2OType>;
+    using ThisType = LeoMinFluid<Scalar, CO2Table, H2OType>;
     using Base = Dumux::FluidSystems::Base<Scalar, ThisType>;
     using IdealGas = Dumux::IdealGas<Scalar>;
 
@@ -117,7 +117,7 @@ public:
     using HCO3 = Components::BicarbonateIon<Scalar>;
     using H = Components::HydronIon<Scalar>;
     using OH = Components::HydroxideIon<Scalar>;
-
+    using Fe2 = Components::Iron2Ion<Scalar>;
     using Brine_CO2 = BinaryCoeff::Brine_CO2<Scalar, CO2Table, true>;
 
     // the type of parameter cache objects. this fluid system does not
@@ -215,7 +215,7 @@ public:
      * Component related static parameters
      ****************************************/
 //    static const int numComponents = 9; // Brine, TC, Na, Cl, Ca, Urea, Urease, TNH
-    static const int numComponents = 8; // Brine, TC, Na, Cl, Ca, Urea, Urease, TNH
+    static const int numComponents = 9; // Brine, TC, Na, Cl, Ca, Urea, Urease, TNH, Fe
     static const int numMajorComponents = 2; //TC, brine
     static const int numSecComponents = 6; //nh4, Hco3, co3, co2, h, oh
 
@@ -233,6 +233,7 @@ public:
     static const int UreaIdx  = 5;
     static const int TNHIdx  = 6;
     static const int UreaseIdx = 7;
+    static const int Fe2Idx = 8;
 
     static const int NH4Idx = numComponents;
     static const int HCO3Idx = numComponents + 1;
@@ -258,6 +259,7 @@ public:
         case UreaseIdx: return Urease::name();
         case UreaIdx: return Urea::name();
         case TNHIdx: return "TotalNH";//NH3::name();
+        case Fe2Idx: return Fe2::name();
         case NH4Idx: return NH4::name();
         case HCO3Idx: return HCO3::name();
         case CO3Idx: return CO3::name();
@@ -286,6 +288,7 @@ public:
         case ClIdx: return Cl::molarMass();
         case UreaseIdx: return Urease::molarMass();
         case UreaIdx: return Urea::molarMass();
+        case Fe2Idx: return Fe2::molarMass();
         case TNHIdx: return NH3::molarMass();
         case NH4Idx: return NH4::molarMass();
         case HCO3Idx: return HCO3::molarMass();
@@ -311,6 +314,7 @@ public:
         case UreaseIdx: return 0; // no charge for urease
         case UreaIdx: return 0;
         case TNHIdx: return 0;
+        case Fe2Idx: return Fe2::charge();
         case NH4Idx: return NH4::charge();
         case HIdx: return H::charge();
         case OHIdx: return OH::charge();
