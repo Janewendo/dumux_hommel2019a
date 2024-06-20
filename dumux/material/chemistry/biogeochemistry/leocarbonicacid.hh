@@ -1,9 +1,9 @@
 
-#ifndef ENZYME_CARBONIC_ACID_HH_
-#define ENZYME_CARBONIC_ACID_HH_
+#ifndef LEO_CARBONIC_ACID_HH_
+#define LEO_CARBONIC_ACID_HH_
 
 #include <dumux/common/exceptions.hh>
-#include <dumux/material/fluidsystems/enzymemin.hh>
+#include <dumux/material/fluidsystems/leomin.hh>
 
 #include <cmath>
 #include <iostream>
@@ -17,7 +17,7 @@ namespace Dumux
  * class.
  */
 template <class TypeTag, class CO2Tables, class ModelTraits>
-class EnzymeMinCarbonicAcid
+class LeoMinCarbonicAcid
 {
     using Scalar = GetPropType<TypeTag, Properties::Scalar>;
     using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
@@ -26,7 +26,7 @@ class EnzymeMinCarbonicAcid
     using Sources = GetPropType<TypeTag, Properties::NumEqVector>;
     using Indices = typename GetPropType<TypeTag, Properties::ModelTraits>::Indices;
 
-    using ThisType = EnzymeMinCarbonicAcid<TypeTag, CO2Tables, ModelTraits>;
+    using ThisType = LeoMinCarbonicAcid<TypeTag, CO2Tables, ModelTraits>;
     using H2O = Components::H2O<Scalar>;
 
     enum
@@ -41,7 +41,7 @@ class EnzymeMinCarbonicAcid
 
 public:
 
-    EnzymeMinCarbonicAcid()
+    LeoMinCarbonicAcid()
 {
 
     pKaFactor_ = getParam<Scalar>("Geochem.pKaFactor");
@@ -58,6 +58,15 @@ public:
     nprec_     = getParam<Scalar>("CalciteCoefficients.nprec");
     Asw0_      = getParam<Scalar>("CalciteCoefficients.Asw0");
 
+    // ferrohydrite parameters
+    fac_        = getParam<Scalar>("FerrohydriteCoefficients.fac");
+    fkdiss1_    = getParam<Scalar>("FerrohydriteCoefficients.fkdiss1");
+    fkdiss2_    = getParam<Scalar>("FerrohydriteCoefficients.fkdiss2");
+    fkprec_     = getParam<Scalar>("FerrohydriteCoefficients.fkprec");
+    fndiss_     = getParam<Scalar>("FerrohydriteCoefficients.fndiss");
+    fnprec_     = getParam<Scalar>("FerrohydriteCoefficients.fnprec");
+    fAsw0_      = getParam<Scalar>("FerrohydriteCoefficients.fAsw0");
+	
     // thermal ureolysis parameters
     cu_        = getParam<Scalar>("UreolysisCoefficients.cu");
     cuT_       = getParam<Scalar>("UreolysisCoefficients.cuT");
@@ -107,7 +116,8 @@ public:
     static const int CO2Idx       = FluidSystem::CO2Idx;
     static const int HCO3Idx      = FluidSystem::HCO3Idx;
     static const int CO3Idx       = FluidSystem::CO3Idx;
-
+    static const int Fe2Idx       = FluidSystem::Fe2Idx;
+	
     static const int UreaIdx      = FluidSystem::UreaIdx;
     static const int UreaseIdx    = FluidSystem::UreaseIdx;
 
@@ -122,11 +132,13 @@ public:
 
     static const int cPhaseIdx          = SolidSystem::CalciteIdx;
     static const int uPhaseIdx          = SolidSystem::JbmeIdx;
+    static const int fPhaseIdx          = SolidSystem::FerrohydriteIdx;	
     static const int numSolidComponents = SolidSystem::numComponents;
     static const int numInertComponents = SolidSystem::numInertComponents;
 
     static const int phiCalciteIdx      = numComponents + cPhaseIdx;
     static const int phiImmUreaseIdx    = numComponents + uPhaseIdx;
+    static const int phiFerrohydriteIdx    = numComponents + fPhaseIdx;
 
     typedef Dune::FieldVector<Scalar, 4> Vector;   // Ionic Strength with NH4/totalnh
     typedef Dune::FieldVector<Scalar, 2> SolVector;
@@ -164,6 +176,7 @@ public:
             ca_ = moleFracToMolality(variable[CaIdx], moleFracSalinity, variable[nCompIdx]);
             na_ = moleFracToMolality(variable[NaIdx], moleFracSalinity, variable[nCompIdx]);
             cl_ = moleFracToMolality(variable[ClIdx], moleFracSalinity, variable[nCompIdx]);
+            fe2_ = moleFracToMolality(variable[Fe2Idx], moleFracSalinity, variable[nCompIdx]);
             totalnh_ = moleFracToMolality(variable[TNHIdx], moleFracSalinity, variable[nCompIdx]);
 
             Scalar m = na_ + ca_;
@@ -254,7 +267,7 @@ public:
             Scalar urea = moleFracToMolality(variable[UreaIdx], moleFracSalinity, variable[nCompIdx]);
             Scalar urease = moleFracToMolality(variable[UreaseIdx], moleFracSalinity, variable[nCompIdx]);
 
-                  Scalar totalMolality = h2o_ + cTot_ + na_ + cl_ + ca_ + totalnh_ + urea + urease;
+                  Scalar totalMolality = h2o_ + cTot_ + na_ + cl_ + ca_ + totalnh_ + urea + urease + fe2_;
                   variable[CTotIdx] = cTot_/totalMolality; //calculate the mole fraction of cTot in terms of mol CO2 / mol solution
                   variable[CO2Idx] = co2_/totalMolality;
                   variable[HCO3Idx] = hco3_/totalMolality;
@@ -262,6 +275,7 @@ public:
                   variable[NH4Idx] = nh4_/totalMolality;
                   variable[OHIdx] = oh_/totalMolality;
                   variable[HIdx] = h_/totalMolality;
+
         }
 
         else if (phaseState == wPhaseOnly) //wPhaseOnly: solve a closed system with cTot concentration constant
@@ -271,7 +285,8 @@ public:
             ca_ = moleFracToMolality(variable[CaIdx], moleFracSalinity, variable[nCompIdx]);
             na_ = moleFracToMolality(variable[NaIdx], moleFracSalinity, variable[nCompIdx]);
             cl_ = moleFracToMolality(variable[ClIdx],  moleFracSalinity, variable[nCompIdx]);
-            totalnh_ = moleFracToMolality(variable[TNHIdx], moleFracSalinity, variable[nCompIdx]);
+            fe2_ = moleFracToMolality(variable[Fe2Idx], moleFracSalinity, variable[nCompIdx]);         
+		    totalnh_ = moleFracToMolality(variable[TNHIdx], moleFracSalinity, variable[nCompIdx]);
 
             Scalar m = na_ + ca_;
             Scalar Temp = fluidState.temperature();
@@ -362,7 +377,7 @@ public:
             Scalar urea = moleFracToMolality(variable[UreaIdx], moleFracSalinity, variable[nCompIdx]);
             Scalar urease = moleFracToMolality(variable[UreaseIdx], moleFracSalinity, variable[nCompIdx]);
 
-            Scalar totalMolality = h2o_ + cTot_ + na_ + cl_ + ca_ + totalnh_ + urea + urease;
+            Scalar totalMolality = h2o_ + cTot_ + na_ + cl_ + ca_ + totalnh_ + urea + urease + fe2_;
 
             // calculate the secondary component mole fractions
             variable[CO2Idx] = co2_/totalMolality;
@@ -371,9 +386,9 @@ public:
             variable[NH4Idx] = nh4_/totalMolality;
             variable[OHIdx] = oh_/totalMolality;
             variable[HIdx] = h_/totalMolality;
-
-            Scalar f = na_ + h_ + 2*ca_ - oh_ - hco3_ - 2*co3_ - cl_ + nh4_;
-            Scalar fmolfrac = 2*variable[CaIdx] + variable[NaIdx] + variable[NH4Idx] + variable[HIdx] - variable[ClIdx] - variable[HCO3Idx] - 2*variable[CO3Idx] - variable[OHIdx];
+			
+            Scalar f = na_ + h_ + 2*ca_ - oh_ - hco3_ - 2*co3_ - cl_ + nh4_ + 2*fe2_;
+            Scalar fmolfrac = 2*variable[CaIdx] + variable[NaIdx] + variable[NH4Idx] + variable[HIdx] - variable[ClIdx] - variable[HCO3Idx] - 2*variable[CO3Idx] - variable[OHIdx] + 2*variable[Fe2Idx];
 
            for (int i = 0; i < numComponents + numSecComponents; ++i)
            {
@@ -420,6 +435,13 @@ public:
     static Scalar solubilityProductCaCO(const Scalar pw, const Scalar T)
     {
         return 4.8e-9;
+    }
+
+//    Return equlibrium constant for dissolution reaction:
+//    Fe(OH)2(s) <--> Fe + 2OH
+    static Scalar solubilityProductFeOH2(const Scalar pw, const Scalar T)
+    {
+        return(pow(10,-4.89));
     }
 
     //Return equlibrium constant for chemical equation:
@@ -507,6 +529,15 @@ public:
         }
         ionicStrength *= 0.5;
 
+        return ionicStrength;
+    }
+    static Scalar ionicStrength(Scalar mNa, Scalar mCl, Scalar mCa, Scalar mNH4, Scalar mFe2 )
+    {
+        Scalar ionicStrength = 0.5*( mNa    * FluidSystem::charge(NaIdx) * FluidSystem::charge(NaIdx)
+        + mCl   * FluidSystem::charge(ClIdx) * FluidSystem::charge(ClIdx)
+        + mCa   * FluidSystem::charge(CaIdx) * FluidSystem::charge(CaIdx)
+        + mNH4  * FluidSystem::charge(NH4Idx) * FluidSystem::charge(NH4Idx)
+		+ mFe2  * FluidSystem::charge(Fe2Idx) * FluidSystem::charge(Fe2Idx));
         return ionicStrength;
     }
     static Scalar ionicStrength(Scalar mNa, Scalar mCl, Scalar mCa, Scalar mNH4 )
@@ -732,7 +763,7 @@ public:
     Scalar OmegaApprox(const Scalar mCa,
             const Scalar mCO3)
     {
-     Scalar Omega_ = mCa * mCO3 / 3.31131e-9; // = 3.3e-9= Ksp(Standard) = pow (10.,-8.48);
+     Scalar Omega_ = mCa * mCO3 / pow (10.,-8.48); // = 3.3e-9= Ksp(Standard) = pow (10.,-8.48);
      return Omega_;
     }
     Scalar rdiss(const Scalar initialPorosity,
@@ -795,6 +826,77 @@ public:
         return rprec_;
     }
 
+    Scalar Fe2OmegaApprox(const Scalar mFe2,
+            const Scalar mOH)
+    {
+     Scalar Fe2Omega_ = mFe2 * mOH * mOH / pow (10.,-4.89); // = 3.3e-9= Ksp(Standard) = pow (10.,-8.48);
+     return Fe2Omega_;
+    }
+    Scalar frdiss(const Scalar initialPorosity,
+            const Scalar volFracCalcite,
+            const Scalar volFracFerrohydrite,
+            const Scalar mNa,
+            const Scalar mCa,
+            const Scalar mNH4,
+            const Scalar mHCO3,
+            const Scalar mCO3,
+            const Scalar mCl,
+            const Scalar mFe2,
+            const Scalar mOH,
+            const Scalar temperature,
+            const Scalar mH)
+    {
+        Scalar fAsw = fAsw0_ * cbrt((1-volFracFerrohydrite/initialPorosity)*(1-volFracFerrohydrite/initialPorosity));   // TODO Asw should be a function of Sw, too!
+        if (fAsw < 1e-8 || isnan(fAsw))
+        {
+            std::cout<< "fAsw = "<<fAsw<<std::endl;
+            fAsw = 0;
+            std::cout<< "fAsw, corrected = "<<fAsw<<std::endl;
+        }
+        Scalar fAcw = fac_ * volFracFerrohydrite;
+        if (fac_ * volFracFerrohydrite > fAsw)
+            fAcw = fAsw;
+        Scalar frdiss_ = 0;
+        Scalar Fe2OmegaApprox_ = Fe2Omega(mFe2,  mOH);
+        if (Fe2OmegaApprox_ <= 1)
+        {
+              frdiss_ = (fkdiss1_ * mH + fkdiss2_) * fAcw * pow((1 - Fe2OmegaApprox_),fndiss_); //[mol/dm³s]
+              frdiss_ *= 1000; // rdiss [mol/m³s]
+        }
+
+        return frdiss_;
+    }
+    Scalar frprec(const Scalar initialPorosity,
+            const Scalar volFracCalcite,
+            const Scalar volFracFerrohydrite,
+            const Scalar mNa,
+            const Scalar mCa,
+            const Scalar mNH4,
+            const Scalar mHCO3,
+            const Scalar mCO3,
+            const Scalar mCl,
+            const Scalar mFe2,
+            const Scalar mOH,
+            const Scalar temperature)
+    {
+        Scalar fAsw = fAsw0_ * cbrt((1-volFracFerrohydrite/initialPorosity)*(1-volFracFerrohydrite/initialPorosity));   // TODO Asw should be a function of Sw, too!
+             if (fAsw < 1e-8 || isnan(fAsw))
+             {
+                 std::cout<< "fAsw = "<<fAsw<<std::endl;
+                 fAsw = 0;
+                 std::cout<< "fAsw, corrected = "<<fAsw<<std::endl;
+             }
+             Scalar frprec_ = 0;
+             Scalar Fe2OmegaApprox_ = Fe2Omega(mFe2,  mOH);
+             if (Fe2OmegaApprox_ >= 1)
+             {
+                 frprec_ = fkprec_ * fAsw * pow(Fe2OmegaApprox_ - 1 , fnprec_);//[mol/dm³s]
+                 frprec_ *= 1000; // rprec [mol/m³s]
+             }
+
+
+        return frprec_;
+    }
 
    Sources reactionSource(const VolumeVariables &volVars,
             const Scalar dt)
@@ -814,6 +916,11 @@ public:
         Scalar volFracCalcite = volVars.solidVolumeFraction(cPhaseIdx);
         if (volFracCalcite < 0)
         volFracCalcite = 0;
+	
+        Scalar volFracFerrohydrite = volVars.solidVolumeFraction(fPhaseIdx);
+        if (volFracFerrohydrite < 0)
+        volFracFerrohydrite = 0;
+	
         Scalar massImmUrease = volVars.solidVolumeFraction(uPhaseIdx)*volVars.solidComponentDensity(uPhaseIdx);
         if (massImmUrease < 0)
         massImmUrease = 0;
@@ -846,7 +953,46 @@ public:
         Scalar mHCO3 = moleFracToMolality(volVars.moleFraction(wPhaseIdx,HCO3Idx), xlSalinity, volVars.moleFraction(wPhaseIdx,nCompIdx));  //[mol_HCO3/kg_H2O]
         if (mHCO3 < 0)
             mHCO3 = 0;
+        Scalar mFe2 = moleFracToMolality(volVars.moleFraction(wPhaseIdx,Fe2Idx), xlSalinity, volVars.moleFraction(wPhaseIdx,nCompIdx));  //[mol_HCO3/kg_H2O]
+        if (mFe2 < 0)
+            mFe2 = 0;
+        Scalar mOH = moleFracToMolality(volVars.moleFraction(wPhaseIdx,OHIdx), xlSalinity, volVars.moleFraction(wPhaseIdx,nCompIdx));  //[mol_HCO3/kg_H2O]
+        if (mOH < 0)
+            mOH = 0;
+        // compute dissolution and precipitation rate of ferrohydrite
+        // Scalar Ksp = Appa_Ksp( mNa,  mCa,  mNH4,  mHCO3,  mCO3,  mCl, volVars.temperature());
+        // Scalar Omega = mCa * mCO3 / Ksp;
+        Scalar Fe2OmegaApprox_ = mFe2 * mOH * mOH / pow (10.,-4.89);
+        Scalar fAsw = fAsw0_ * cbrt((1-volFracFerrohydrite/initialPorosity)*(1-volFracFerrohydrite/initialPorosity));   // TODO Asw should be a function of Sw, too!
+        if (fAsw < 1e-8 || std::isnan(fAsw))
+        {
+        std::cout<< "fAsw = "<<fAsw<<std::endl;
+        fAsw = 0;
+        std::cout<< "fAsw, corrected = "<<fAsw<<std::endl;
+        }
+        Scalar fAcw = fac_ * volFracFerrohydrite;
+        if (fac_ * volFracFerrohydrite > fAsw)
+            fAcw = fAsw;
 
+        Scalar frdiss = 0;
+        Scalar frprec = 0;
+        if (Fe2OmegaApprox_ >= 1)
+        {
+        frdiss = 0;
+        frprec = fkprec_ * fAsw * pow(Fe2OmegaApprox_ - 1 , fnprec_);//[mol/dm³s]
+        frprec *= 1000; // rprec [mol/m³s]
+        }
+        else
+        {
+//             rdiss = (kdiss1_ * mH + kdiss2_) * Acw * pow((1 - Omega),ndiss_); //[mol/dm³s]
+//             rdiss *= 1000; // rdiss [mol/m³s]
+            frprec = 0;
+        }
+        if(frprec >
+            volVars.moleFraction(wPhaseIdx,Fe2Idx) * Sw * porosity * volVars.molarDensity(wPhaseIdx) / dt)
+        {
+            frprec =  volVars.moleFraction(wPhaseIdx,Fe2Idx) * Sw * porosity * volVars.molarDensity(wPhaseIdx) / dt;
+        }
 
         // compute dissolution and precipitation rate of calcite
         Scalar Ksp = Appa_Ksp( mNa,  mCa,  mNH4,  mHCO3,  mCO3,  mCl, volVars.temperature());
@@ -928,11 +1074,13 @@ public:
         q[NaIdx] += 0;
         q[ClIdx] += 0;
         q[CaIdx] += - rprec + rdiss;
+        q[Fe2Idx] += - frprec + frdiss;
         q[UreaIdx] += - rurea;
         q[TNHIdx] += 2 * rurea;
         q[UreaseIdx] += (- ra_urease + rd_urease - ria_urease)/FluidSystem::molarMass(UreaseIdx);
 //      q[JBMIdx] += (- ra_iJBM + rd_iJBM)/FluidSystem::molarMass(JBMIdx);
         q[phiCalciteIdx] += + rprec - rdiss;
+        q[phiFerrohydriteIdx] += + frprec - frdiss;
         q[phiImmUreaseIdx] += (ra_urease - rd_urease - ria_immUrease)/SolidSystem::molarMass(uPhaseIdx);
 
         return q;
@@ -995,7 +1143,8 @@ private:
               nh4 = Hb * NH3b / ka_;
 
               oh = kw_ / Hb;
-              b = - Hb + 2*CO3b + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_;
+
+              b = - Hb + 2*CO3b + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_ - 2.*fe2_;
 
               pHc = pHc - (eps*c)/(b-c);
 
@@ -1031,7 +1180,7 @@ private:
               nh4 = Hc * NH3c / ka_;
 
               oh = kw_ / Hc;
-              c = - Hc + 2*CO3c + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_;
+              c = - Hc + 2*CO3c + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_- 2.*fe2_;
 
               pHb = pHc+eps;
               iter_+=1;
@@ -1225,7 +1374,7 @@ private:
       nh4 = Ha * NH3a / ka_;
 
       oh = kw_ / Ha;
-      a = - Ha + 2*CO3a + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_;
+      a = - Ha + 2*CO3a + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_- 2.*fe2_;
 
       Hb = pow(10.,-pHb);
       CO3l = 0.;
@@ -1261,7 +1410,7 @@ private:
       nh4 = Hb * NH3b / ka_;
 
       oh = kw_ / Hb;
-      b = - Hb + 2*CO3b + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_;
+      b = - Hb + 2*CO3b + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_- 2.*fe2_;
 
       pHc = (pHa + pHb)/2.;
 
@@ -1299,7 +1448,7 @@ private:
       nh4 = Hc * NH3c / ka_;
 
       oh = kw_ / Hc;
-      c = - Hc + 2*CO3c + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_;
+      c = - Hc + 2*CO3c + hco3 + oh - nh4 - na_ + cl_ - 2.*ca_- 2.*fe2_;
 
       if (a*c<0.) pHb = pHc;
       else pHa = pHc;
@@ -1330,13 +1479,13 @@ private:
         nh4_ = totalnh_/(1+ka_/h_);
 
         //Solve the function
-        Scalar f = na_ + h_ + 2*ca_ - oh_ - hco3_ - 2*co3_ - cl_ + nh4_;
+        Scalar f = na_ + h_ + 2*ca_ - oh_ - hco3_ - 2*co3_ - cl_ + nh4_- 2.*fe2_;
         //Solve the derivative df/d(activityH)
         Scalar eps = 1e-8;
         Scalar xRight = h_ + eps*h_; // x + dx
         Scalar xLeft = h_ - eps*h_; // x - dx
-        Scalar fRight = na_ + xRight + 2*ca_ - kw_/xRight - k1_*co2_/xRight - 2*k1_*k2_*co2_/(xRight*xRight) - cl_ + totalnh_/(1+ka_/xRight); // f(x+dx)
-        Scalar fLeft = na_ + xLeft + 2*ca_ - kw_/xLeft -  k1_*co2_/xLeft - 2*k1_*k2_*co2_/(xLeft*xLeft) - cl_ + totalnh_/(1+ka_/xLeft); //  f(x-dx)
+        Scalar fRight = na_ + xRight + 2*ca_ + 2*fe2_ - kw_/xRight - k1_*co2_/xRight - 2*k1_*k2_*co2_/(xRight*xRight) - cl_ + totalnh_/(1+ka_/xRight); // f(x+dx)
+        Scalar fLeft = na_ + xLeft + 2*ca_ + 2*fe2_ - kw_/xLeft -  k1_*co2_/xLeft - 2*k1_*k2_*co2_/(xLeft*xLeft) - cl_ + totalnh_/(1+ka_/xLeft); //  f(x-dx)
         Scalar df = (fRight - fLeft)/2/eps/h_; // {f(x+dx) - f(x-dx)}/2dx
 
 
@@ -1356,13 +1505,13 @@ private:
         nh4_ = totalnh_/(1+ka_/h_);
 
         //Solve the function
-        Scalar f = na_ + h_ + 2*ca_ - oh_ - hco3_ - 2*co3_ - cl_ + nh4_;
+        Scalar f = na_ + h_ + 2*ca_ - oh_ - hco3_ - 2*co3_ - cl_ + nh4_- 2.*fe2_;
         //Solve the derivative df/d(activityH)
         Scalar eps = 1e-8;
         Scalar xRight = h_ + eps*h_; // x + dx
         Scalar xLeft = h_ - eps*h_; // x - dx
-        Scalar fRight = na_ + xRight + 2*ca_ - kw_/xRight - cTot_/(xRight/k1_ + 1 + k2_/xRight) - 2*cTot_/((xRight*xRight)/k1_/k2_ + xRight/k2_ + 1) - cl_ + totalnh_/(1+ka_/xRight); // f(x+dx)
-        Scalar fLeft = na_ + xLeft + 2*ca_ - kw_/xLeft - cTot_/(xLeft/k1_ + 1 + k2_/xLeft) - 2*cTot_/((xLeft*xLeft)/k1_/k2_ + xLeft/k2_ + 1) - cl_ + totalnh_/(1+ka_/xLeft); //  f(x-dx)
+        Scalar fRight = na_ + xRight + 2*ca_ + 2*fe2_ - kw_/xRight - cTot_/(xRight/k1_ + 1 + k2_/xRight) - 2*cTot_/((xRight*xRight)/k1_/k2_ + xRight/k2_ + 1) - cl_ + totalnh_/(1+ka_/xRight); // f(x+dx)
+        Scalar fLeft = na_ + xLeft + 2*ca_ + 2*fe2_  - kw_/xLeft - cTot_/(xLeft/k1_ + 1 + k2_/xLeft) - 2*cTot_/((xLeft*xLeft)/k1_/k2_ + xLeft/k2_ + 1) - cl_ + totalnh_/(1+ka_/xLeft); //  f(x-dx)
         Scalar df = (fRight - fLeft)/2/eps/h_; // {f(x+dx) - f(x-dx)}/2dx
 
 
@@ -1424,6 +1573,7 @@ private:
     Scalar ca_;
     Scalar na_;
     Scalar cl_;
+    Scalar fe2_;
     Scalar totalnh_;
     Scalar nh4_;
     Scalar initH_;
@@ -1469,6 +1619,15 @@ private:
         Scalar nprec_;
         Scalar Asw0_;
 
+    // ferrohydrite parameters
+        Scalar fac_;
+        Scalar fkdiss1_;
+        Scalar fkdiss2_;
+        Scalar fkprec_;
+        Scalar fndiss_;
+        Scalar fnprec_;
+        Scalar fAsw0_;
+
     // urease parameters
         bool useHeatKilledCells_;
         bool useJackBeans_;
@@ -1498,6 +1657,15 @@ public:
        Scalar nprec()    {       return nprec_; }
        Scalar Asw0()    {       return Asw0_; }
 
+    // ferrohydrite parameters
+       Scalar fac()    {       return fac_; }
+       Scalar fkdiss1()    {    return fkdiss1_; }
+       Scalar fkdiss2()    {    return fkdiss2_; }
+       Scalar fkprec()    {       return fkprec_; }
+       Scalar fndiss()    {       return fndiss_; }
+       Scalar fnprec()    {       return fnprec_; }
+       Scalar fAsw0()    {       return fAsw0_; }
+
     // urease parameters
         Scalar kub()    {       return kub_; }
         Scalar kurease()    {   return kurease_; }
@@ -1520,6 +1688,10 @@ public:
     {   return nprec_;}
     Scalar Asw0() const
     {   return Asw0_;}
+    Scalar fnprec() const
+    {   return fnprec_;}
+    Scalar fAsw0() const
+    {   return fAsw0_;}
     Scalar Keu1() const
     {   return Keu1_;}
     Scalar Keu2() const
@@ -1551,3 +1723,13 @@ public:
 } // end namespace
 
 #endif
+
+
+
+
+
+
+
+
+
+
